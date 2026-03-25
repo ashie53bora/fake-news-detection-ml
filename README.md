@@ -106,7 +106,7 @@ Installation and Setup
 
 Step 1: Clone the repository
 
-git clone https://github.com/your-username/fake-news-detection-ml.git
+git clone https://github.com/ashie53bora/fake-news-detection-ml.git
 
 Step 2: Navigate to project folder
 
