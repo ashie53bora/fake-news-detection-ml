@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Result — FakeCheck</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --red:        #e63946;
+      --red-dim:    rgba(230,57,70,0.12);
+      --green:      #3cb043;
+      --green-dim:  rgba(60,176,67,0.12);
+      --dark:       #0d0d0d;
+      --card-bg:    #111111;
+      --border:     rgba(255,255,255,0.07);
+      --muted:      #666;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--dark);
+      color: #ddd;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* noise */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: 0.022;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Navbar ── */
+    nav.navbar {
+      position: sticky; top: 0; z-index: 999;
+      background: rgba(13,13,13,0.92);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(14px);
+      padding: 0.85rem 0;
+    }
+    .navbar-brand {
+      font-family: 'Sora', sans-serif;
+      font-weight: 800; font-size: 1.1rem;
+      color: #fff !important;
+      letter-spacing: -0.03em;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .brand-dot {
+      width: 8px; height: 8px;
+      background: var(--red); border-radius: 50%;
+      box-shadow: 0 0 8px var(--red);
+    }
+    .navbar-toggler { border: 1px solid var(--border) !important; padding: 5px 9px; }
+    .navbar-toggler-icon {
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255,255,255,0.7%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+    }
+    .nav-link {
+      font-size: 0.87rem; font-weight: 500;
+      color: #666 !important;
+      padding: 6px 14px !important;
+      border-radius: 8px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .nav-link:hover { color: #fff !important; background: rgba(255,255,255,0.05); }
+    .nav-link.active { color: #fff !important; }
+    .nav-cta {
+      background: var(--red) !important;
+      color: #fff !important;
+      padding: 7px 18px !important;
+      border-radius: 8px;
+      font-weight: 600; font-size: 0.85rem;
+      transition: opacity 0.2s, transform 0.2s !important;
+    }
+    .nav-cta:hover { opacity: 0.88; transform: translateY(-1px); background: var(--red) !important; }
+
+    /* ── Page body ── */
+    .page-body {
+      flex: 1;
+      position: relative; z-index: 1;
+      display: flex; align-items: center; justify-content: center;
+      padding: 60px 16px;
+    }
+
+    /* radial glow behind card */
+    .page-body::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%; transform: translateX(-50%);
+      width: 700px; height: 500px;
+      pointer-events: none;
+    }
+    .glow-fake::before  { background: radial-gradient(ellipse, rgba(230,57,70,0.13) 0%, transparent 70%); }
+    .glow-real::before  { background: radial-gradient(ellipse, rgba(60,176,67,0.12) 0%, transparent 70%); }
+
+    /* ── Result card ── */
+    .result-wrap { width: 100%; max-width: 560px; }
+
+    .result-card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.55);
+      animation: rise 0.55s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(28px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0)   scale(1);    }
+    }
+
+    /* top accent bar */
+    .card-bar {
+      height: 4px;
+      width: 100%;
+    }
+    .bar-fake { background: linear-gradient(90deg, #e63946, #ff6b75, #e63946); background-size: 200%; animation: shimmer 2.5s linear infinite; }
+    .bar-real { background: linear-gradient(90deg, #3cb043, #6de077, #3cb043); background-size: 200%; animation: shimmer 2.5s linear infinite; }
+    @keyframes shimmer { 0%{background-position:0%} 100%{background-position:200%} }
+
+    .card-body-inner { padding: 44px 40px 40px; text-align: center; }
+
+    /* verdict icon */
+    .verdict-icon {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem;
+      margin: 0 auto 24px;
+      position: relative;
+    }
+    .icon-fake {
+      background: var(--red-dim);
+      border: 1.5px solid rgba(230,57,70,0.3);
+      box-shadow: 0 0 40px rgba(230,57,70,0.18);
+    }
+    .icon-real {
+      background: var(--green-dim);
+      border: 1.5px solid rgba(60,176,67,0.3);
+      box-shadow: 0 0 40px rgba(60,176,67,0.15);
+    }
+    /* ring pulse */
+    .verdict-icon::after {
+      content: '';
+      position: absolute; inset: -8px;
+      border-radius: 50%;
+      border: 1px solid;
+      animation: ring-fade 2s ease-out infinite;
+    }
+    .icon-fake::after { border-color: rgba(230,57,70,0.35); }
+    .icon-real::after { border-color: rgba(60,176,67,0.3); }
+    @keyframes ring-fade {
+      0%   { transform: scale(1);    opacity: 1; }
+      100% { transform: scale(1.35); opacity: 0; }
+    }
+
+    /* badge */
+    .verdict-badge {
+      display: inline-block;
+      font-size: 0.72rem; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 4px 14px; border-radius: 100px;
+      margin-bottom: 14px;
+    }
+    .badge-fake { background: var(--red-dim); border: 1px solid rgba(230,57,70,0.3); color: #f87; }
+    .badge-real { background: var(--green-dim); border: 1px solid rgba(60,176,67,0.3); color: #7de0a0; }
+
+    /* headline */
+    .verdict-headline {
+      font-family: 'Sora', sans-serif;
+      font-size: 1.75rem; font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 10px;
+    }
+    .headline-fake { color: #ff6b75; }
+    .headline-real { color: #6de077; }
+
+    .verdict-sub {
+      font-size: 0.9rem; color: #666;
+      line-height: 1.65; margin-bottom: 28px;
+    }
+
+    /* prediction text */
+    .prediction-box {
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 28px;
+      font-size: 0.85rem; font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+    .pbox-fake { background: rgba(230,57,70,0.07); border: 1px solid rgba(230,57,70,0.15); color: #f28; }
+    .pbox-real { background: rgba(60,176,67,0.07); border: 1px solid rgba(60,176,67,0.15); color: #7de0a0; }
+
+    /* confidence row */
+    .conf-row {
+      display: flex; gap: 12px; margin-bottom: 32px;
+    }
+    .conf-item {
+      flex: 1;
+      background: #161616;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 12px;
+    }
+    .conf-label { font-size: 0.7rem; color: #555; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
+    .conf-value { font-family: 'Sora', sans-serif; font-size: 1.3rem; font-weight: 700; }
+    .conf-fake  { color: #ff6b75; }
+    .conf-real  { color: #6de077; }
+    .conf-neutral { color: #aaa; }
+
+    /* severity pill */
+    .severity-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.78rem; font-weight: 600;
+      padding: 6px 16px; border-radius: 100px;
+      margin-bottom: 28px;
+    }
+    .sev-high    { background: rgba(230,57,70,0.12); border: 1px solid rgba(230,57,70,0.25); color: #f87; }
+    .sev-medium  { background: rgba(245,166,35,0.12); border: 1px solid rgba(245,166,35,0.25); color: #f5c97a; }
+    .sev-low     { background: rgba(245,166,35,0.08); border: 1px solid rgba(245,166,35,0.18); color: #c8a45f; }
+    .sev-safe    { background: rgba(60,176,67,0.12); border: 1px solid rgba(60,176,67,0.25); color: #7de0a0; }
+    .sev-dot     { width: 6px; height: 6px; border-radius: 50%; }
+    .sev-high   .sev-dot { background: #e63946; }
+    .sev-medium .sev-dot { background: #f5a623; }
+    .sev-low    .sev-dot { background: #c8a45f; }
+    .sev-safe   .sev-dot { background: #3cb043; }
+
+    /* explanation */
+    .explanation-box {
+      background: #0f0f0f;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      text-align: left;
+      margin-bottom: 32px;
+    }
+    .exp-label { font-size: 0.7rem; color: #444; text-transform: uppercase; letter-spacing: 0.09em; margin-bottom: 7px; }
+    .exp-text  { font-size: 0.85rem; color: #888; line-height: 1.65; }
+
+    /* divider */
+    .card-divider { border: none; border-top: 1px solid var(--border); margin: 0 0 28px; }
+
+    /* CTA button */
+    .btn-check {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--red); color: #fff;
+      border: none; border-radius: 10px;
+      padding: 13px 28px;
+      font-family: 'Sora', sans-serif;
+      font-size: 0.9rem; font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 28px rgba(230,57,70,0.3);
+      width: 100%; justify-content: center;
+    }
+    .btn-check:hover {
+      opacity: 0.9; transform: translateY(-2px);
+      box-shadow: 0 0 40px rgba(230,57,70,0.45);
+      color: #fff;
+    }
+    .btn-check .arrow { transition: transform 0.2s; }
+    .btn-check:hover .arrow { transform: translateX(4px); }
+
+    .btn-home {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      background: transparent; color: #555;
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 11px 28px;
+      font-size: 0.87rem; font-weight: 500;
+      text-decoration: none;
+      width: 100%; margin-top: 10px;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+    .btn-home:hover { color: #fff; border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.04); }
+
+    /* ── Footer ── */
+    footer {
+      position: relative; z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+      text-align: center;
+      font-size: 0.78rem; color: #333;
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--dark); }
+    ::-webkit-scrollbar-thumb { background: #1e1e1e; border-radius: 10px; }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════ NAVBAR ═══════ -->
+  <nav class="navbar navbar-expand-lg">
+    <div class="container">
+      <a class="navbar-brand" href="/"><span class="brand-dot"></span>FakeCheck</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
+          <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+          <li class="nav-item"><a class="nav-link active" href="/predict">Prediction</a></li>
+          <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+          <li class="nav-item"><a class="nav-link" href="/history">History</a></li>
+          <li class="nav-item ms-lg-2">
+            <a class="nav-link nav-cta" href="/predict">Try Now →</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════ RESULT ═══════ -->
+  {% if "FAKE" in prediction_text %}
+  <div class="page-body glow-fake">
+  {% else %}
+  <div class="page-body glow-real">
+  {% endif %}
+
+    <div class="result-wrap">
+      <div class="result-card">
+
+        <!-- top shimmer bar -->
+        {% if "FAKE" in prediction_text %}
+        <div class="card-bar bar-fake"></div>
+        {% else %}
+        <div class="card-bar bar-real"></div>
+        {% endif %}
+
+        <div class="card-body-inner">
+
+          <!-- Icon -->
+          {% if "FAKE" in prediction_text %}
+          <div class="verdict-icon icon-fake">⚠</div>
+          {% else %}
+          <div class="verdict-icon icon-real">✓</div>
+          {% endif %}
+
+          <!-- Badge -->
+          {% if "FAKE" in prediction_text %}
+          <div class="verdict-badge badge-fake">Fake News Detected</div>
+          {% else %}
+          <div class="verdict-badge badge-real">Real News Verified</div>
+          {% endif %}
+
+          <!-- Headline -->
+          {% if "FAKE" in prediction_text %}
+          <h1 class="verdict-headline headline-fake">This news is likely FAKE</h1>
+          <p class="verdict-sub">Our model flagged this content as potentially misleading or fabricated. Verify with trusted sources before sharing.</p>
+          {% else %}
+          <h1 class="verdict-headline headline-real">This news is likely REAL</h1>
+          <p class="verdict-sub">Our model found this content consistent with credible reporting. Always cross-check with multiple reliable sources.</p>
+          {% endif %}
+
+          <!-- Prediction text from Flask -->
+          {% if "FAKE" in prediction_text %}
+          <div class="prediction-box pbox-fake">{{ prediction_text }}</div>
+          {% else %}
+          <div class="prediction-box pbox-real">{{ prediction_text }}</div>
+          {% endif %}
+
+          <!-- Confidence scores -->
+          {% if fake_conf is defined and real_conf is defined %}
+          <div class="conf-row">
+            <div class="conf-item">
+              <div class="conf-label">Fake confidence</div>
+              <div class="conf-value conf-fake">{{ fake_conf }}%</div>
+            </div>
+            <div class="conf-item">
+              <div class="conf-label">Real confidence</div>
+              <div class="conf-value conf-real">{{ real_conf }}%</div>
+            </div>
+            {% if confidence is defined %}
+            <div class="conf-item">
+              <div class="conf-label">Overall</div>
+              <div class="conf-value conf-neutral">{{ confidence }}%</div>
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          <!-- Severity -->
+          {% if severity is defined %}
+            {% if severity == "High Risk" %}
+            <div class="severity-pill sev-high"><span class="sev-dot"></span>{{ severity }}</div>
+            {% elif severity == "Medium Risk" %}
+            <div class="severity-pill sev-medium"><span class="sev-dot"></span>{{ severity }}</div>
+            {% elif severity == "Low Risk" %}
+            <div class="severity-pill sev-low"><span class="sev-dot"></span>{{ severity }}</div>
+            {% else %}
+            <div class="severity-pill sev-safe"><span class="sev-dot"></span>{{ severity }}</div>
+            {% endif %}
+          {% endif %}
+
+          <!-- LIME explanation -->
+          {% if explanation_message is defined %}
+          <div class="explanation-box">
+            <div class="exp-label">AI Explanation</div>
+            <p class="exp-text">{{ explanation_message }}</p>
+          </div>
+          {% endif %}
+
+          <hr class="card-divider">
+
+          <!-- CTA -->
+          <a href="/predict" class="btn-check">
+            Check Another Article
+            <span class="arrow">→</span>
+          </a>
+          <a href="/" class="btn-home">← Back to Home</a>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ FOOTER ═══════ -->
+  <footer>
+    <div class="container">
+      FakeCheck &nbsp;·&nbsp; Built with Python, Flask &amp; scikit-learn
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Animate confidence values counting up
+    window.addEventListener('load', function() {
+      document.querySelectorAll('.conf-value').forEach(function(el) {
+        const target = parseFloat(el.innerText);
+        if (isNaN(target)) return;
+        let start = 0;
+        const duration = 1200;
+        const step = 16;
+        const increment = target / (duration / step);
+        el.innerText = '0%';
+        const timer = setInterval(function() {
+          start += increment;
+          if (start >= target) {
+            start = target;
+            clearInterval(timer);
+          }
+          el.innerText = start.toFixed(2) + '%';
+        }, step);
+      });
+    });
+  </script>
+</body>
+</body>
+</html>
